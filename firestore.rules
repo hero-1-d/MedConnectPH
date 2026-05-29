@@ -1,0 +1,131 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdminEmail() {
+      return isAuthenticated() &&
+        request.auth.token.email == 'mindconnect.univ@gmail.com';
+    }
+
+    function hasUserProfile() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return hasUserProfile() ? currentUser().data.role : null;
+    }
+
+    function isAdmin() {
+      return isAdminEmail() || userRole() == 'admin';
+    }
+
+    function isDoctor() {
+      return userRole() == 'doctor';
+    }
+
+    function isStudent() {
+      return userRole() == 'student';
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) &&
+        (request.resource.data.role != 'admin' || isAdminEmail());
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        (resource.data.role == request.resource.data.role || !('role' in resource.data)) &&
+        (request.resource.data.role != 'admin' || isAdminEmail()) &&
+        request.resource.data.uid == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(studentId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(doctorId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow get, list: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.studentId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid
+      );
+      allow create: if isAuthenticated() &&
+        request.resource.data.studentId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.studentId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid
+      ) &&
+      request.resource.data.studentId == resource.data.studentId &&
+      request.resource.data.doctorId == resource.data.doctorId;
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, update, delete: if isAuthenticated() &&
+        (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+    }
+
+    match /resources/{resourceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /wellness_tips/{tipId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /crisis_resources/{resourceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /counseling_centers/{centerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /calming_techniques/{techniqueId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /system/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /mood_logs/{logId} {
+      allow read: if isAuthenticated() &&
+        (isAdmin() || resource.data.uid == request.auth.uid || isDoctor());
+      allow create: if isAuthenticated() &&
+        request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+  }
+}
