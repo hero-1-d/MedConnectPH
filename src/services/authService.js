@@ -169,6 +169,11 @@ export const loginUser = async (email, password) => {
       throw new Error('Your account exists in Firebase Auth but has no Firestore profile yet. Please contact an admin or recreate the account.')
     }
 
+    if (userData.isActive === false) {
+      await signOut(auth)
+      throw new Error('This account has been deactivated. Please contact the administrator.')
+    }
+
     return { success: true, user, userData }
   } catch (error) {
     console.error('LOGIN ERROR:', error)
@@ -201,6 +206,11 @@ export const signInWithGoogle = async (role = 'student') => {
       name: user.displayName,
       photoURL: user.photoURL || '',
     })
+
+    if (userData?.isActive === false) {
+      await signOut(auth)
+      throw new Error('This account has been deactivated. Please contact the administrator.')
+    }
 
     return { user, userData, isNew: !userDoc.exists() }
   } catch (error) {

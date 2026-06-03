@@ -342,7 +342,7 @@ export const getAnalyticsData = async () => {
 
     const appointments = appointmentsSnapshot.docs.map(d => normalizeDocument(d))
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const weeklyData = dayLabels.map(day => ({ name: day, appointments: 0 }))
+    const weeklyData = dayLabels.map(day => ({ day, name: day, appointments: 0 }))
     const counselorCounts = new Map()
 
     appointments.forEach((appointment) => {
@@ -362,7 +362,7 @@ export const getAnalyticsData = async () => {
     }))
 
     const topCounselors = Array.from(counselorCounts.entries())
-      .map(([name, appointments]) => ({ name, appointments }))
+      .map(([name, appointments]) => ({ name, appointments, bookings: appointments }))
       .sort((a, b) => b.appointments - a.appointments)
       .slice(0, 5)
 

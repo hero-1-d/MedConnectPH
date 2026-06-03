@@ -21,7 +21,7 @@ const LoginPage = () => {
       // Redirect based on role
       if (result.userData?.role === 'student') navigate('/student/dashboard')
       else if (result.userData?.role === 'doctor') navigate('/doctor/dashboard')
-      else if (result.userData?.role === 'admin') navigate('/admin/dashboard')
+      else if (result.userData?.role === 'admin') navigate('/admin')
       else navigate('/')
     } catch (error) {
       showToast.error(error.message || 'Invalid email or password')
@@ -35,7 +35,7 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle()
       showToast.success('Welcome!')
-      if (result.userData?.role === 'admin') navigate('/admin/dashboard')
+      if (result.userData?.role === 'admin') navigate('/admin')
       else if (result.userData?.role === 'doctor') navigate('/doctor/dashboard')
       else navigate('/student/dashboard')
     } catch (error) {

@@ -42,7 +42,7 @@ const Navbar = () => {
   const getDashboardLink = () => {
     if (userData?.role === 'student') return '/student/dashboard'
     if (userData?.role === 'doctor') return '/doctor/dashboard'
-    if (userData?.role === 'admin') return '/admin/dashboard'
+    if (userData?.role === 'admin') return '/admin'
     return '/'
   }
 

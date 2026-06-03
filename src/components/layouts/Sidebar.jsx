@@ -43,7 +43,7 @@ const Sidebar = () => {
         ]
       case 'admin':
         return [
-          { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+          { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
           { to: '/admin/users', icon: Users, label: 'Users' },
           { to: '/admin/appointments', icon: ClipboardList, label: 'Appointments' },
           { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },

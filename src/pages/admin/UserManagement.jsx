@@ -24,6 +24,7 @@ const UserManagement = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [editForm, setEditForm] = useState({ role: 'student', isActive: true })
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -80,6 +81,38 @@ const UserManagement = () => {
       showToast.success('User status updated')
     } catch (error) {
       showToast.error(error.message || 'Failed to update user')
+    }
+  }
+
+  const openEditModal = (user) => {
+    setSelectedUser(user)
+    setEditForm({
+      role: user.role || 'student',
+      isActive: user.isActive !== false,
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return
+
+    setSaving(true)
+    try {
+      const updates = {
+        role: editForm.role,
+        isActive: editForm.isActive,
+      }
+
+      await updateDocument('users', selectedUser.id, updates)
+      setUsers(prev => prev.map(u =>
+        u.id === selectedUser.id ? { ...u, ...updates } : u
+      ))
+      showToast.success('User updated successfully')
+      setShowEditModal(false)
+    } catch (error) {
+      showToast.error(error.message || 'Failed to update user')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -236,7 +269,7 @@ const UserManagement = () => {
                           <td>
                             <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => { setSelectedUser(user); setShowEditModal(true); }}
+                                onClick={() => openEditModal(user)}
                                 className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                                 title="Edit"
                               >
@@ -288,7 +321,11 @@ const UserManagement = () => {
                 </div>
                 <div>
                   <label className="label">Role</label>
-                  <select className="input" defaultValue={selectedUser.role}>
+                  <select
+                    className="input"
+                    value={editForm.role}
+                    onChange={e => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                  >
                     <option value="student">Student</option>
                     <option value="doctor">Doctor</option>
                     <option value="admin">Admin</option>
@@ -296,14 +333,20 @@ const UserManagement = () => {
                 </div>
                 <div>
                   <label className="label">Status</label>
-                  <select className="input" defaultValue={selectedUser.isActive ? 'active' : 'inactive'}>
+                  <select
+                    className="input"
+                    value={editForm.isActive ? 'active' : 'inactive'}
+                    onChange={e => setEditForm(prev => ({ ...prev, isActive: e.target.value === 'active' }))}
+                  >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button onClick={() => setShowEditModal(false)} className="flex-1 btn-ghost">Cancel</button>
-                  <button onClick={() => { showToast.success('User updated'); setShowEditModal(false); }} className="flex-1 btn-primary">Save Changes</button>
+                  <button onClick={handleSaveEdit} disabled={saving} className="flex-1 btn-primary">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                  </button>
                 </div>
               </div>
             )}

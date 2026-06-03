@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Navigate, Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import LoadingSpinner from './components/ui/LoadingSpinner.jsx'
 import ScrollToTop from './components/ui/ScrollToTop.jsx'
@@ -62,7 +62,8 @@ function App() {
           {/* Admin Routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<RoleRoute allowedRoles={['admin']} />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/appointments" element={<AppointmentManagement />} />
               <Route path="/admin/analytics" element={<AnalyticsPage />} />

@@ -32,7 +32,7 @@ const RegisterPage = () => {
       const result = await registerUser(data.email, data.password, data.name, selectedRole, additionalData)
       showToast.success('Account created successfully!')
 
-      if (result.userData?.role === 'admin') navigate('/admin/dashboard')
+      if (result.userData?.role === 'admin') navigate('/admin')
       else if (result.userData?.role === 'doctor') navigate('/doctor/dashboard')
       else navigate('/student/dashboard')
     } catch (error) {
@@ -47,7 +47,7 @@ const RegisterPage = () => {
     try {
       const result = await signInWithGoogle(role)
       showToast.success('Welcome!')
-      if (result.userData?.role === 'admin') navigate('/admin/dashboard')
+      if (result.userData?.role === 'admin') navigate('/admin')
       else if (result.userData?.role === 'doctor') navigate('/doctor/dashboard')
       else navigate('/student/dashboard')
     } catch (error) {

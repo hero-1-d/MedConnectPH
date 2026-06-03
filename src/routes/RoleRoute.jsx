@@ -17,7 +17,7 @@ const RoleRoute = ({ allowedRoles }) => {
     // Redirect to appropriate dashboard based on role
     if (userData?.role === 'student') return <Navigate to="/student/dashboard" replace />
     if (userData?.role === 'doctor') return <Navigate to="/doctor/dashboard" replace />
-    if (userData?.role === 'admin') return <Navigate to="/admin/dashboard" replace />
+    if (userData?.role === 'admin') return <Navigate to="/admin" replace />
     return <Navigate to="/" replace />
   }
 
