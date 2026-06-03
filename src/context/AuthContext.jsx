@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser) {
         setUser(firebaseUser)
         try {
-          const data = await getCurrentUserData(firebaseUser.uid, firebaseUser)
+          const data = await getCurrentUserData(firebaseUser.uid)
           setUserData(data)
         } catch (error) {
           console.error('Error fetching user data:', error)

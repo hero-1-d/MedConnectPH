@@ -60,10 +60,14 @@ export const ensureUserDocument = async (user, requestedRole = 'student', additi
 
     await setDoc(doc(db, 'students', user.uid), {
       uid: user.uid,
+      name: userData.name,
+      email: userData.email,
+      role,
       studentNumber: userData.studentNumber,
       course: userData.course,
       yearLevel: userData.yearLevel,
       moodLogs: studentData.moodLogs || [],
+      isActive: userData.isActive,
       createdAt: studentData.createdAt || existingData?.createdAt || serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true })
@@ -76,12 +80,16 @@ export const ensureUserDocument = async (user, requestedRole = 'student', additi
 
     await setDoc(doctorRef, {
       uid: user.uid,
+      name: userData.name,
+      email: userData.email,
+      role,
       specialization: userData.specialization || doctorData.specialization || 'General Counseling',
       bio: userData.bio || doctorData.bio || '',
       availability: doctorData.availability || additionalData.availability || {},
       profileImage: doctorData.profileImage || userData.photoURL || '',
       rating: doctorData.rating || additionalData.rating || 0,
       totalReviews: doctorData.totalReviews || additionalData.totalReviews || 0,
+      isActive: userData.isActive,
       createdAt: doctorData.createdAt || existingData?.createdAt || serverTimestamp(),
       updatedAt: serverTimestamp(),
     }, { merge: true })
@@ -99,54 +107,84 @@ export const registerUser = async (
   additionalData = {}
 ) => {
   try {
-    additionalData = additionalData || {}
-    const userRole = resolveRole(email, role || 'student')
+    const normalizedEmail = normalizeEmail(email)
+    const userRole = resolveRole(normalizedEmail, role)
 
-   const userCredential = await createUserWithEmailAndPassword(
-    auth,
-    email.trim().toLowerCase(),
-    password
-  )
-
-    const user = userCredential.user
-
-    await updateProfile(user, {
-      displayName: displayName || (userRole === 'admin' ? ADMIN_NAME : ''),
-    })
-
-    const userData = await ensureUserDocument(user, userRole, {
-      name: displayName || (userRole === 'admin' ? ADMIN_NAME : ''),
-      email,
-      studentNumber: additionalData.studentNumber || '',
-      course: additionalData.course || '',
-      yearLevel: additionalData.yearLevel || '',
-      specialization: additionalData.specialization || '',
-      bio: additionalData.bio || '',
-      photoURL: additionalData.photoURL || '',
-    })
-
-    return { user, userData }
-  } catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-// Login user
-export const loginUser = async (email, password) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(
+    const userCredential = await createUserWithEmailAndPassword(
       auth,
-      email.trim().toLowerCase(),
+      normalizedEmail,
       password
     )
 
     const user = userCredential.user
 
-    const userData = await ensureUserDocument(user, 'student')
+    await updateProfile(user, {
+      displayName:
+        displayName || (userRole === 'admin' ? ADMIN_NAME : ''),
+    })
 
-    return { user, userData }
+    const userData = await ensureUserDocument(user, userRole, {
+      ...additionalData,
+      name: displayName,
+      email: normalizedEmail,
+    })
+
+    return {
+      success: true,
+      user,
+      userData,
+    }
   } catch (error) {
-    throw error
+    console.error('REGISTER ERROR:', error)
+
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        throw new Error(
+          'This email is already registered. Please login instead.'
+        )
+
+      case 'auth/invalid-email':
+        throw new Error('Invalid email address.')
+
+      case 'auth/weak-password':
+        throw new Error(
+          'Password must be at least 6 characters.'
+        )
+
+      default:
+        throw new Error(error.message)
+    }
+  }
+}
+
+// Login existing user
+export const loginUser = async (email, password) => {
+  try {
+    const normalizedEmail = normalizeEmail(email)
+    const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password)
+    const user = userCredential.user
+    const userData = await getCurrentUserData(user.uid)
+
+    if (!userData) {
+      throw new Error('Your account exists in Firebase Auth but has no Firestore profile yet. Please contact an admin or recreate the account.')
+    }
+
+    return { success: true, user, userData }
+  } catch (error) {
+    console.error('LOGIN ERROR:', error)
+
+    switch (error.code) {
+      case 'auth/invalid-email':
+        throw new Error('Invalid email address.')
+      case 'auth/user-disabled':
+        throw new Error('This account has been disabled.')
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        throw new Error('Invalid email or password.')
+      default:
+        throw new Error(error.message)
+    }
   }
 }
 
@@ -191,12 +229,8 @@ export const resetPassword = async (email) => {
 }
 
 // Get current user data
-export const getCurrentUserData = async (uid, firebaseUser = null) => {
+export const getCurrentUserData = async (uid) => {
   try {
-    if (firebaseUser) {
-      return ensureUserDocument(firebaseUser, 'student')
-    }
-
     const userDoc = await getDoc(doc(db, 'users', uid))
     if (userDoc.exists()) {
       return userDoc.data()
